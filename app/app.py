@@ -1,3 +1,4 @@
+import altair as alt
 import numpy as np
 import pandas as pd
 import pydeck as pdk
@@ -158,19 +159,23 @@ capas = [
     pdk.Layer("ScatterplotLayer", data=pd.DataFrame({"lat": [lat], "lon": [lon]}),
               get_position="[lon, lat]", get_fill_color=[0, 0, 0], get_radius=12, radius_min_pixels=6),
 ]
-zoom = {200: 16, 300: 15.5, 500: 15, 750: 14.4, 1000: 14}[radio]
+zoom = {200: 16.6, 300: 16.1, 500: 15.4, 750: 14.8, 1000: 14.4}[radio]
 st.pydeck_chart(pdk.Deck(
     layers=capas,
     initial_view_state=pdk.ViewState(latitude=lat, longitude=lon, zoom=zoom),
     map_provider="carto", map_style="light",
     tooltip={"text": "{direccion}\n{tipo_tramite}\n{fecha_txt}"},
-))
-st.caption("  ·  ".join(
-    f"<span style='color:rgb({c[0]},{c[1]},{c[2]})'>●</span> {n}" for n, c in COLORES.items()
+), height=480)
+st.markdown("&nbsp;&nbsp;&nbsp;".join(
+    f"<span style='color:rgb({c[0]},{c[1]},{c[2]}); font-size:1.3em'>●</span> {n}"
+    for n, c in COLORES.items()
 ), unsafe_allow_html=True)
 
 # ---------- Gráficos ----------
 g1, g2 = st.columns(2)
+
+ESCALA = alt.Scale(domain=["Esta zona", "Toda la Ciudad"], range=["#e07b39", "#2f5d8a"])
+LEYENDA = alt.Legend(orient="bottom", title=None)
 
 with g1:
     st.markdown("#### Evolución (índice 2021 = 100)")
@@ -180,20 +185,36 @@ with g1:
         indice = pd.DataFrame({
             "Esta zona": 100 * evol_zona / evol_zona[2021],
             "Toda la Ciudad": 100 * evol_ciudad / evol_ciudad[2021],
-        }).round(0)
-        indice.index = indice.index.astype(str)
-        st.line_chart(indice, color=["#e07b39", "#2f5d8a"])
+        }).round(0).reset_index(names="anio").melt("anio", var_name="serie", value_name="indice")
+        grafico = alt.Chart(indice).mark_line(point=True, strokeWidth=3).encode(
+            x=alt.X("anio:O", title=None, axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("indice:Q", title="Índice (2021 = 100)", scale=alt.Scale(zero=False)),
+            color=alt.Color("serie:N", scale=ESCALA, legend=LEYENDA),
+            tooltip=[alt.Tooltip("anio:O", title="Año"), alt.Tooltip("serie:N", title=" "),
+                     alt.Tooltip("indice:Q", title="Índice")],
+        ).properties(height=320)
+        st.altair_chart(grafico, width="stretch")
         st.caption("Promedio de trámites por mes de cada año. 100 = nivel de 2021.")
     else:
         st.caption("No hay datos suficientes de 2021 en esta zona para comparar.")
 
 with g2:
     st.markdown("#### Tipo de trámite (%)")
+    orden = obras["categoria"].value_counts().index.tolist()
     comparacion = pd.DataFrame({
         "Esta zona": zona["categoria"].value_counts(normalize=True) * 100,
         "Toda la Ciudad": obras["categoria"].value_counts(normalize=True) * 100,
-    }).fillna(0).round(1).sort_values("Toda la Ciudad", ascending=False)
-    st.bar_chart(comparacion, horizontal=True, stack=False, color=["#e07b39", "#2f5d8a"])
+    }).fillna(0).round(1).reset_index(names="categoria").melt(
+        "categoria", var_name="serie", value_name="porcentaje")
+    grafico = alt.Chart(comparacion).mark_bar().encode(
+        y=alt.Y("categoria:N", sort=orden, title=None),
+        yOffset=alt.YOffset("serie:N", sort=["Esta zona", "Toda la Ciudad"]),
+        x=alt.X("porcentaje:Q", title="% de los trámites"),
+        color=alt.Color("serie:N", scale=ESCALA, legend=LEYENDA),
+        tooltip=[alt.Tooltip("categoria:N", title="Tipo"), alt.Tooltip("serie:N", title=" "),
+                 alt.Tooltip("porcentaje:Q", title="%")],
+    ).properties(height=320)
+    st.altair_chart(grafico, width="stretch")
 
 # ---------- Últimos trámites ----------
 st.markdown("#### Últimos trámites en la zona")

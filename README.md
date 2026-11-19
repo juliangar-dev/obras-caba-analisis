@@ -2,7 +2,7 @@
 
 Análisis de 90.515 trámites de obra registrados en la Ciudad entre septiembre de 2020 y octubre de 2026, con Python y SQL.
 
-
+**App online: [obras-caba.streamlit.app](https://obras-caba.streamlit.app/)**: escribí una dirección y mirá todas las obras, demoliciones y trámites registrados a tu alrededor, comparados con el resto de la Ciudad.
 
 ## Principales hallazgos
 
@@ -43,15 +43,17 @@ python src/graficos.py
 
 Tests: `python -m pytest`
 
+App local: `streamlit run app/app.py`
+
 ## Estructura
 
 - `src/limpieza.py`: limpieza de datos y categorización de trámites
 - `src/cargar_db.py`: carga de los datos en una base SQLite
 - `src/consultas.py`: consultas SQL
 - `src/graficos.py`: gráficos
+- `app/app.py`: aplicación web (Streamlit)
 - `tests/`: tests de la limpieza
 
 ## Herramientas
 
-Python, pandas, SQL (SQLite), matplotlib, pytest, Git.
-
+Python, pandas, SQL (SQLite), matplotlib, Streamlit, pydeck, pytest, Git.
