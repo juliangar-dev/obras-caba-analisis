@@ -42,4 +42,33 @@ GROUP BY anio
 ORDER BY anio
 """)
 
+categorias = consultar("Tipos de trámite en toda la ciudad", """
+SELECT categoria,
+       COUNT(*) AS cantidad,
+       ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM obras), 1) AS porcentaje
+FROM obras
+GROUP BY categoria
+ORDER BY cantidad DESC
+""")
+
+urquiza_vs_ciudad = consultar("Villa Urquiza vs. toda la ciudad (% por tipo)", """
+SELECT categoria,
+       ROUND(100.0 * SUM(CASE WHEN barrio = 'VILLA URQUIZA' THEN 1 ELSE 0 END)
+             / (SELECT COUNT(*) FROM obras WHERE barrio = 'VILLA URQUIZA'), 1) AS pct_villa_urquiza,
+       ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM obras), 1) AS pct_ciudad
+FROM obras
+GROUP BY categoria
+ORDER BY pct_ciudad DESC
+""")
+
+urquiza_por_anio = consultar("Villa Urquiza por año (promedio mensual)", """
+SELECT anio,
+       COUNT(*) AS cantidad,
+       ROUND(1.0 * COUNT(*) / COUNT(DISTINCT mes)) AS promedio_mensual
+FROM obras
+WHERE barrio = 'VILLA URQUIZA' AND anio >= 2021
+GROUP BY anio
+ORDER BY anio
+""")
+
 conexion.close()
